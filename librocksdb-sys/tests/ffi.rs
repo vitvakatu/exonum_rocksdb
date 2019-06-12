@@ -26,7 +26,8 @@
 #[macro_use]
 extern crate const_cstr;
 extern crate libc;
-extern crate exonum_librocksdb_sys as ffi;
+extern crate librocksdb_sys as ffi;
+extern crate uuid;
 
 use ffi::*;
 use libc::*;
@@ -39,9 +40,14 @@ use std::path::PathBuf;
 use std::ptr;
 use std::slice;
 use std::str;
+use uuid::Uuid;
 
 macro_rules! err_println {
     ($($arg:tt)*) => (writeln!(&mut ::std::io::stderr(), $($arg)*).expect("failed printing to stderr"));
+}
+
+macro_rules! cstr {
+    ($($arg:tt)*) => (const_cstr!($($arg)*));
 }
 
 macro_rules! cstrp {
@@ -256,7 +262,7 @@ unsafe extern "C" fn FilterKeyMatch(
         memcmp(
             filter as *const c_void,
             cstrp!("fake") as *const c_void,
-            filter_length,
+            filter_length
         ) == 0
     );
     fake_filter_result
@@ -433,15 +439,17 @@ fn ffi() {
         let mut err: *mut c_char = ptr::null_mut();
         let run: c_int = -1;
 
+        let test_uuid = Uuid::new_v4().to_simple();
+
         let dbname = {
             let mut dir = GetTempDir();
-            dir.push(format!("rocksdb_c_test-{}", geteuid()));
+            dir.push(format!("rocksdb_c_test-{}", test_uuid));
             let path = dir.to_str().unwrap();
             CString::new(path).unwrap()
         };
         let dbbackupname = {
             let mut dir = GetTempDir();
-            dir.push(format!("rocksdb_c_test-{}-backup", geteuid()));
+            dir.push(format!("rocksdb_c_test-{}-backup", test_uuid));
             let path = dir.to_str().unwrap();
             CString::new(path).unwrap()
         };
@@ -472,7 +480,7 @@ fn ffi() {
         rocksdb_options_set_block_based_table_factory(options, table_options);
 
         let no_compression = rocksdb_no_compression;
-        rocksdb_options_set_compression(options, no_compression);
+        rocksdb_options_set_compression(options, no_compression as i32);
         rocksdb_options_set_compression_options(options, -14, -1, 0, 0);
         let compression_levels = vec![
             no_compression,
@@ -972,16 +980,16 @@ fn ffi() {
 
             let mut cf_options = rocksdb_options_create();
 
-            let cf_names: [*const c_char; 2] = [cstrp!("default"), cstrp!("cf1")];
-            let cf_opts: [*const rocksdb_options_t; 2] = [cf_options, cf_options];
+            let mut cf_names: [*const c_char; 2] = [cstrp!("default"), cstrp!("cf1")];
+            let mut cf_opts: [*const rocksdb_options_t; 2] = [cf_options, cf_options];
             let mut handles: [*mut rocksdb_column_family_handle_t; 2] =
                 [ptr::null_mut(), ptr::null_mut()];
             db = rocksdb_open_column_families(
                 db_options,
                 dbname,
                 2,
-                cf_names.as_ptr(),
-                cf_opts.as_ptr(),
+                cf_names.as_mut_ptr(),
+                cf_opts.as_mut_ptr(),
                 handles.as_mut_ptr(),
                 &mut err,
             );

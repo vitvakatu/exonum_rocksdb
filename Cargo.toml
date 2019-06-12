@@ -24,4 +24,4 @@ path = "test/test.rs"
 [dependencies]
 libc = "0.2"
 tempdir = "0.3"
-exonum_librocksdb-sys = { path = "librocksdb-sys", version = "0.5.5" }
+exonum_librocksdb-sys = { path = "librocksdb-sys" }
