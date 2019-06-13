@@ -238,7 +238,7 @@ fn main() {
         get_local_src_if(
             "rocksdb",
             "https://github.com/facebook/rocksdb.git",
-            "641fae60f63619ed5d0c9d9e4c4ea5a0ffa3e253",
+            "f438b98e552010613cff8684a7d84191ed785148",
         );
         build_rocksdb();
     }
